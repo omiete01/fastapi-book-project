@@ -1,0 +1,47 @@
+name: Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv  # Create virtual environment
+          source venv/bin/activate  # Activate virtual environment
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Deploy to Server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 20.62.249.84 >> ~/.ssh/known_hosts
+
+          ssh -o StrictHostKeyChecking=no azureuser@20.62.249.84 -i ~/.ssh/id_rsa << 'EOF'
+            cd fastapi-book-project || exit 1  # Ensure folder exists
+            git pull origin main  # Pull latest code
+            source venv/bin/activate  # Activate virtual environment
+            sudo docker stop fastapi-app || true  # Stop running container if exists
+            sudo docker rm fastapi-app || true  # Remove old container
+            sudo docker rmi fastapi-app || true  # Remove old image
+            sudo docker build -t fastapi-app .  # Build new image
+            sudo docker run -d --name fastapi-app -p 8000:8000 fastapi-app  # Run new container
+            sudo docker system prune -f  # Cleanup unused images (optional)
+          EOF
