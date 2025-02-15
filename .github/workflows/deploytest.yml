@@ -46,7 +46,7 @@ jobs:
               }
           }
           NGINX_CONF
-          sudo ln -sf /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
+          # sudo ln -sf /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
           sudo systemctl restart nginx
           echo ":white_tick: Deployment Successful!"
           EOF
