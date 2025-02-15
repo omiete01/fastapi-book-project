@@ -18,13 +18,6 @@ jobs:
         with:
           python-version: '3.8'
 
-      - name: Install dependencies
-        run: |
-          python -m venv venv  # Create virtual environment
-          source venv/bin/activate  # Activate virtual environment
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Deploy to Server
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -32,9 +25,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H 20.62.249.84 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 20.157.154.52 >> ~/.ssh/known_hosts
 
-          ssh -o StrictHostKeyChecking=no azureuser@20.62.249.84 -i ~/.ssh/id_rsa << 'EOF'
+          ssh -o StrictHostKeyChecking=no azureuser@20.157.154.52 -i ~/.ssh/id_rsa << 'EOF'
             cd fastapi-book-project || exit 1  # Ensure folder exists
             git pull origin main  # Pull latest code
             source venv/bin/activate  # Activate virtual environment
