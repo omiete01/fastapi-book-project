@@ -17,7 +17,7 @@ jobs:
 
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no -p 443  ${{ secrets.SSH_HOST }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no azureuser@20.127.154.52 << 'EOF'
           # Ensure required packages are installed
           sudo apt-get update
           sudo apt-get install -y git docker.io nginx
