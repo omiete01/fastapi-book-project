@@ -1,0 +1,52 @@
+name: CD Pipeline
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          
+      - name: Deploy to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_HOST }}@${{ secrets.SERVER_IP }} << 'EOF'
+          # Ensure required packages are installed
+          apt-get update
+          apt-get install -y git docker.io nginx
+          # Ensure the project is cloned
+          if [ ! -d "/fastapi-book-project" ]; then
+              git clone https://github.com/omiete01/fastapi-book-project.git /fastapi-book-project
+          fi
+          cd /fastapi-book-project
+          git pull origin main
+          # Build and run FastAPI container without Docker Compose
+          docker build -t fastapi_app .
+          docker stop fastapi_app || true
+          docker rm fastapi_app || true
+          docker run -d --name fastapi_app -p 8000:8000 fastapi_app
+          # Set up Nginx configuration
+          echo ":spanner: Setting up Nginx configuration..."
+          cat <<NGINX_CONF > /etc/nginx/sites-available/fastapi
+          server {
+              listen 80;
+              server_name ${{ secrets.SERVER_IP }};
+              location / {
+                  proxy_pass http://127.0.0.1:8000;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+              }
+          }
+          NGINX_CONF
+          ln -sf /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
+          systemctl restart nginx
+          echo ":white_tick: Deployment Successful!"
+          EOF
