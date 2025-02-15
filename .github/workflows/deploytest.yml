@@ -14,13 +14,13 @@ jobs:
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
+
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_HOST }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -p 443  ${{ secrets.SSH_HOST }}@${{ secrets.SERVER_IP }} << 'EOF'
           # Ensure required packages are installed
-          apt-get update
-          apt-get install -y git docker.io nginx
+          sudo apt-get update
+          sudo apt-get install -y git docker.io nginx
           # Ensure the project is cloned
           if [ ! -d "/fastapi-book-project" ]; then
               git clone https://github.com/omiete01/fastapi-book-project.git /fastapi-book-project
@@ -28,13 +28,13 @@ jobs:
           cd /fastapi-book-project
           git pull origin main
           # Build and run FastAPI container without Docker Compose
-          docker build -t fastapi_app .
-          docker stop fastapi_app || true
-          docker rm fastapi_app || true
-          docker run -d --name fastapi_app -p 8000:8000 fastapi_app
+          sudo docker build -t fastapi_app .
+          sudo docker stop fastapi_app || true
+          sudo docker rm fastapi_app || true
+          sudo docker run -d --name fastapi_app -p 8000:8000 fastapi_app
           # Set up Nginx configuration
           echo ":spanner: Setting up Nginx configuration..."
-          cat <<NGINX_CONF > /etc/nginx/sites-available/fastapi
+          sudo cat <<NGINX_CONF > /etc/nginx/sites-available/fastapi
           server {
               listen 80;
               server_name ${{ secrets.SERVER_IP }};
@@ -46,7 +46,7 @@ jobs:
               }
           }
           NGINX_CONF
-          ln -sf /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
-          systemctl restart nginx
+          sudo ln -sf /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
+          sudo systemctl restart nginx
           echo ":white_tick: Deployment Successful!"
           EOF
